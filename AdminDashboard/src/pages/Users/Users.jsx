@@ -1,13 +1,29 @@
-import React from 'react'
+import React, {useState,useEffect} from 'react'
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { API_PATHS } from '../../utils/apiPaths';
+import axiosInstance from '../../utils/axiosInstance';
 
 export default function Users() {
 
-    const programSummary = [
-        { name: 'Ali khan', email: 'alikhan@gmail.com', role: 'admin', status: 'active' },
-        { name: 'Sara Ahmed', email: 'sara@gmail.com', role: 'user', status: 'inactive' },
-        { name: 'John Doe', email: 'john@gmail.com', role: 'editor', status: 'pending' }
-    ]
+     const [users, setUsers] = useState([])
+    const [loading, setLoading] = useState(false)
+
+    const fetchAllUsers = async () => {
+        setLoading(true)
+        try {
+            const response = await axiosInstance.get(API_PATHS.USERS.GET_ALL_USERS)
+            setUsers(response.data)
+        } catch (error) {
+            console.error('Error fetching users:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchAllUsers()
+    }, [])
+
 
     return (
        <>
@@ -40,34 +56,28 @@ export default function Users() {
                       <th className="px-4 py-3 text-left text-xs font-medium  uppercase tracking-wider">
                         Email
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium  uppercase tracking-wider">
-                        Roll
+                      {/* <th className="px-4 py-3 text-left text-xs font-medium  uppercase tracking-wider">
+                        Role
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium  uppercase tracking-wider">
                         Status
-                      </th>
+                      </th> */}
                       <th className="px-4 py-3 text-left text-xs font-medium  uppercase tracking-wider">
                         Action
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-transparent">
-                    {programSummary.map((row, index) => (
+                    {users.map((row, index) => (
                       <tr key={index} className="bg-blue-100  border-3 border-white">
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 ">
-                          {row.name}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {row.email}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {row.role}
-                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 ">{row.name}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{row.email}</td>
+                        {/* <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{row.role}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                             {row.status}
                           </span>
-                        </td>
+                        </td> */}
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
                           <span className="inline-flex items-center gap-2">
                             <button className="p-1 rounded hover:bg-blue-100 text-blue-600" title="Edit">

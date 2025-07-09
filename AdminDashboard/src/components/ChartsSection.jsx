@@ -1,8 +1,30 @@
-import React from 'react'
+import React,{useState,useEffect} from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import axiosInstance from '../utils/axiosInstance';
+import { API_PATHS } from '../utils/apiPaths';
 
 const ChartsSection = () => {
-  // Sample data for OOSC Trend Overview
+  const [DistrictData, setDistrictData] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    fetchDistrictData();
+  }, []);
+
+  const fetchDistrictData = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get(API_PATHS.ENTRIES.GET_ALL_ENTRIES);
+      const data = response.data;
+      setDistrictData(data);
+    } catch (error) {
+      console.error('Error fetching district data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+    // Sample data for OOSC Trend Overview
   const trendData = [
     { year: '2019', value: 4.2 },
     { year: '2020', value: 4.5 },
@@ -12,11 +34,23 @@ const ChartsSection = () => {
     { year: '2024', value: 4.92 }
   ]
 
-  // Sample data for OOSC By Districts (Donut Chart)
+  // Calculate percentages for OOSC By Districts (Donut Chart)
+  let totalChildren = 0;
+  let totalOutOfSchool = 0;
+
+  DistrictData.forEach(entry => {
+    totalChildren += Number(entry.totalChildren) || 0;
+    totalOutOfSchool += Number(entry.outOfSchoolChildren) || 0;
+  });
+
+  const inSchool = totalChildren - totalOutOfSchool;
+  const inSchoolPercent = totalChildren > 0 ? ((inSchool / totalChildren) * 100).toFixed(1) : 0;
+  const outOfSchoolPercent = totalChildren > 0 ? ((totalOutOfSchool / totalChildren) * 100).toFixed(1) : 0;
+
   const districtData = [
-    { name: 'In School', value: 52, color: '#93C5FD' },
-    { name: 'Out of School', value: 48, color: '#4A90E2' }
-  ]
+    { name: 'In School', value: Number(inSchoolPercent), color: '#93C5FD' },
+    { name: 'Out of School', value: Number(outOfSchoolPercent), color: '#4A90E2' }
+  ];
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
@@ -56,10 +90,6 @@ const ChartsSection = () => {
       <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border border-gray-100">
         <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 md:mb-6">OOSC By Districts</h3>
         <div className="h-48 md:h-64 flex items-center justify-center">
-
-
-          {/* Donut Chart  ===> The responsivness is in px should change it to */}
-
           <div className="relative w-[220px] h-[200px] md:w-[280px] md:h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -78,13 +108,25 @@ const ChartsSection = () => {
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-            {/* Center text */}
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
-                <div className="text-xl md:text-2xl font-bold text-gray-900">48%</div>
+                <div className="text-xl md:text-2xl font-bold text-gray-900">{outOfSchoolPercent}%</div>
                 <div className="text-xs md:text-sm text-gray-600">Out of School</div>
               </div>
             </div>
+          </div>
+        </div>
+        {/* Percentage Legends below the chart */}
+        <div className="flex justify-center gap-6 mt-4">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-4 h-4 rounded-full" style={{ backgroundColor: '#93C5FD' }}></span>
+            <span className="text-xs md:text-sm text-gray-700 font-semibold">In School:</span>
+            <span className="text-xs md:text-sm text-gray-900 font-bold">{inSchoolPercent}%</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-4 h-4 rounded-full" style={{ backgroundColor: '#4A90E2' }}></span>
+            <span className="text-xs md:text-sm text-gray-700 font-semibold">Out of School:</span>
+            <span className="text-xs md:text-sm text-gray-900 font-bold">{outOfSchoolPercent}%</span>
           </div>
         </div>
       </div>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react'
 import istock from "../../assets/Logo/istock.png"
+import axiosInstance from '../../utils/axiosInstance'
+import { API_PATHS } from '../../utils/apiPaths'
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -77,21 +79,57 @@ const Register = () => {
     }
 
     setIsLoading(true)
+    setErrors({})
+    try {
+      // Register user via API
+      const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
+      })
 
-    // Simulate API call
-    setTimeout(() => {
-      // For demo purposes, automatically register and login
-      localStorage.setItem('isAuthenticated', 'true')
-      localStorage.setItem('user', JSON.stringify({
+      // Debug: log API response
+      console.log('Register API response:', response)
+
+      // Save user info and token if provided - ensure atomic operation
+      const userData = response.data.user || {
         email: formData.email,
         name: formData.name
-      }))
+      }
+
+      localStorage.setItem('user', JSON.stringify(userData))
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token)
+      }
+      // Set authentication flag last to ensure all data is saved
+      localStorage.setItem('isAuthenticated', 'true')
+
+      // Debug: log localStorage and navigation target
+      console.log('localStorage isAuthenticated:', localStorage.getItem('isAuthenticated'))
+      console.log('localStorage user:', localStorage.getItem('user'))
+      console.log('localStorage token:', localStorage.getItem('token'))
+      const from = location.state?.from?.pathname || '/dashboard'
+      console.log('Redirecting to:', from)
+
       setIsLoading(false)
 
-      // Redirect to the page they were trying to access or dashboard
-      const from = location.state?.from?.pathname || '/dashboard'
-      navigate(from, { replace: true })
-    }, 1000)
+      // Small delay to ensure localStorage is fully written before navigation
+      setTimeout(() => {
+        navigate(from, { replace: true })
+      }, 100)
+    } catch (error) {
+      setIsLoading(false)
+      // Debug: log error
+      console.log('Register error:', error)
+      if (error.response && error.response.data && error.response.data.errors) {
+        setErrors(error.response.data.errors)
+      } else if (error.response && error.response.data && error.response.data.message) {
+        setErrors({ general: error.response.data.message })
+      } else {
+        setErrors({ general: 'Registration failed. Please try again.' })
+      }
+    }
   }
 
   return (
@@ -109,6 +147,9 @@ const Register = () => {
         {/* Register Form */}
         <div className="bg-white rounded-lg shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {errors.general && (
+              <div className="mb-4 text-red-600 text-center text-sm">{errors.general}</div>
+            )}
             {/* Name Field */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
