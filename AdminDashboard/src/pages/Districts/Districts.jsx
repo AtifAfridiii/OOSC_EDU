@@ -1,37 +1,128 @@
-import React  from "react";
-import {  XAxis, YAxis, ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
-import StatsCards from "../../components/StatsCards";
+import React, { useState, useEffect } from "react";
+import { XAxis, YAxis, ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import StatsCard from '../../components/StatsCard';
+import { ChevronDown, Calendar, Users, Target, ArrowBigDownIcon,PersonStandingIcon,} from 'lucide-react';
+import axiosInstance from '../../utils/axiosInstance';
+import { API_PATHS } from '../../utils/apiPaths';
+
 export default function DistrictsPage() {
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [allEntries, setAllEntries] = useState([]);
+  const [filteredEntries, setFilteredEntries] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-     const trendData = [
-        { year: '2019', value: 4.2 },
-        { year: '2020', value: 4.5 },
-        { year: '2021', value: 4.8 },
-        { year: '2022', value: 4.6 },
-        { year: '2023', value: 4.9 },
-        { year: '2024', value: 4.92 }
-    ];
+  // Static trend data (remains unchanged)
+  const trendData = [
+    { year: '2019', value: 4.2 },
+    { year: '2020', value: 4.5 },
+    { year: '2021', value: 4.8 },
+    { year: '2022', value: 4.6 },
+    { year: '2023', value: 4.9 },
+    { year: '2024', value: 4.92 }
+  ];
 
-    const enrollmentsData = [
-        { district: 'Poverty', enrolled: 50 },
-        { district: 'Distance', enrolled: 30 },
-        { district: 'Child Labor', enrolled: 120 },
-        { district: 'No internet', enrolled: 65 },
-        { district: 'Other', enrolled: 75 }
-    ];
+  useEffect(() => {
+    setLoading(true);
+    axiosInstance.get(API_PATHS.ENTRIES.GET_ALL_ENTRIES)
+      .then(response => {
+        const data = Array.isArray(response.data)
+          ? response.data
+          : (response.data?.entries || response.data?.data || []);
+        setAllEntries(data);
+        if (data.length > 0 && !selectedDistrict) {
+          setSelectedDistrict(data[0].district || "");
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
-    const genderData = [
-        { name: "Boys", value: 54 },
-        { name: "Girls", value: 46 },
-    ];
-    const COLORS = ["#4285F4", "#EC4899"];
+  useEffect(() => {
+    if (!selectedDistrict) {
+      setFilteredEntries(allEntries);
+    } else {
+      setFilteredEntries(allEntries.filter(e => e.district === selectedDistrict));
+    }
+  }, [selectedDistrict, allEntries]);
 
-    return (
+  // Dynamic Dropout Reasons Data
+  const enrollmentsData = [
+    { district: 'Poverty', enrolled: filteredEntries.reduce((sum, e) => sum + (Number(e.povertyPercentage) || 0), 0) },
+    { district: 'Disability', enrolled: filteredEntries.reduce((sum, e) => sum + (Number(e.disabilityPercentage) || 0), 0) },
+    { district: 'Child Labor', enrolled: filteredEntries.reduce((sum, e) => sum + (Number(e.childLaborPercentage) || 0), 0) },
+    { district: 'No internet', enrolled: filteredEntries.reduce((sum, e) => sum + (Number(e.noInternetPercentage) || 0), 0) },
+    { district: 'Other', enrolled: filteredEntries.reduce((sum, e) => sum + (Number(e.otherPercentage) || 0), 0) }
+  ];
+
+  // Dynamic Gender Data
+  let totalGirls = 0, totalBoys = 0, totalChildren = 0;
+  filteredEntries.forEach(entry => {
+    const children = Number(entry.totalChildren) || 0;
+    const girlsPercent = Number(entry.girlsPercentage) || 0;
+    const boysPercent = 100 - girlsPercent;
+    totalGirls += (girlsPercent / 100) * children;
+    totalBoys += (boysPercent / 100) * children;
+    totalChildren += children;
+  });
+  const genderData = [
+    { name: "Girls", value: totalChildren > 0 ? Math.round((totalGirls / totalChildren) * 100) : 0 },
+    { name: "Boys", value: totalChildren > 0 ? Math.round((totalBoys / totalChildren) * 100) : 0 }
+  ];
+  const COLORS = ["#EC4899", "#4285F4"];
+
+  return (
         <>
             <div className="p-4 md:p-6 bg-[#F8F9FA]">
-                <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 pb-4 " >
-                    <StatsCards />
-                </div>
+                <div className="max-w-7xl mx-auto mb-6">
+  <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 md:p-6">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Districts Dashboard</h1>
+        <p className="text-gray-600 mt-1">Select a district to view detailed analytics and metrics</p>
+      </div>
+      <div className="relative">
+        <select
+          value={selectedDistrict}
+          onChange={e => setSelectedDistrict(e.target.value)}
+          className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-64"
+          disabled={loading}
+        >
+          {Array.from(new Set(allEntries.map(e => e.district).filter(Boolean))).map(d => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+      </div>
+    </div>
+  </div>
+  <div className="mt-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <StatsCard title="Total Children" value={(() => {
+    let total = 0;
+    filteredEntries.forEach(e => { total += Number(e.totalChildren) || 0; });
+    return total;
+  })()} icon={<Users className="w-6 h-6 text-green-600" />} bgColor={"bg-[#4A90E2]"} iconBg={"bg-[#e8f0fe]"} />
+  <StatsCard title="Programs" value={filteredEntries.length} icon={<Target className="w-6 h-6 text-blue-600" />} />
+  <StatsCard title="Dropout %" value={(() => {
+    let total = 0, dropout = 0;
+    filteredEntries.forEach(e => {
+      total += Number(e.totalChildren) || 0;
+      dropout += Number(e.outOfSchoolChildren) || 0;
+    });
+    return total > 0 ? ((dropout / total) * 100).toFixed(1) + '%' : '0%';
+  })()} icon={<ArrowBigDownIcon className="w-6 h-6 text-red-600" />} bgColor={"bg-[#E1F5FE]"} iconBg={"bg-[#e0f7fa]"} />
+  <StatsCard title="Girls %" value={(() => {
+    let total = 0, girls = 0;
+    filteredEntries.forEach(e => {
+      const children = Number(e.totalChildren) || 0;
+      const girlsPercent = Number(e.girlsPercentage) || 0;
+      girls += (girlsPercent / 100) * children;
+      total += children;
+    });
+    return total > 0 ? ((girls / total) * 100).toFixed(1) + '%' : '0%';
+  })()} icon={<PersonStandingIcon className="w-6 h-6 text-red-600" />} bgColor={"bg-[#F5F5F5]"} iconBg={"bg-[#fce4ec]"} />
+</div>
+  </div>
+</div>
 
   <div className="grid md:grid-cols-2 gap-4 md:gap-6 sm:grid-cols-1">
      <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border border-gray-100">

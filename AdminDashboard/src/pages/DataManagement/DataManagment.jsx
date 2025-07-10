@@ -109,7 +109,6 @@ const DataManagement = () => {
 
       setEntries(entriesData)
       console.log('✅ Entries set in state:', entriesData.length, 'entries')
-      showToast(`Entries loaded successfully (${entriesData.length} entries)`, 'success')
     } catch (error) {
       console.error('❌ Error fetching entries:', error)
       console.error('❌ Error details:', error.response?.data)
@@ -644,109 +643,111 @@ const DataManagement = () => {
       )}
 
       {/* Data Entries Table */}
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Data Entries ({filteredEntries.length} of {(entries || []).length})
-            </h3>
-            {loading && (
-              <div className="flex items-center text-gray-500">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-500 mr-2"></div>
-                Loading...
+      {!showForm && (
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 md:p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Data Entries ({filteredEntries.length} of {(entries || []).length})
+              </h3>
+              {loading && (
+                <div className="flex items-center text-gray-500">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-500 mr-2"></div>
+                  Loading...
+                </div>
+              )}
+            </div>
+
+            {/* Debug table rendering */}
+            {console.log('🎨 Rendering table with:', {
+              filteredEntriesLength: filteredEntries.length,
+              entriesLength: (entries || []).length,
+              showingEmptyState: filteredEntries.length === 0
+            })}
+
+            {!isAuthenticated ? (
+              <div className="text-center py-12">
+                <div className="text-red-400 text-lg mb-2">🔒 Authentication Required</div>
+                <p className="text-gray-500 mb-4">
+                  You need to be logged in to view and manage data entries.
+                </p>
+                <button
+                  onClick={handleLogin}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
+                >
+                  Go to Login
+                </button>
+              </div>
+            ) : filteredEntries.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-2">No entries found</div>
+                <p className="text-gray-500">
+                  {(entries || []).length === 0
+                    ? "Start by adding your first entry"
+                    : "Try adjusting your search criteria"
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">District</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Children</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Out of School</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Girls %</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Boys %</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Poverty %</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disability %</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Other %</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredEntries.map((entry) => (
+                      <tr key={entry.id || entry._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.district}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.totalChildren}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.outOfSchoolChildren}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.girlsPercentage}%</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.boysPercentage}%</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.povertyPercentage}%</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.disabilityPercentage}%</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.otherPercentage}%</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.programType}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => handleEditEntry(entry.id || entry._id)}
+                              disabled={loading}
+                              className="text-blue-600 hover:text-blue-900 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteEntry(entry.id || entry._id)}
+                              disabled={loading}
+                              className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
-
-          {/* Debug table rendering */}
-          {console.log('🎨 Rendering table with:', {
-            filteredEntriesLength: filteredEntries.length,
-            entriesLength: (entries || []).length,
-            showingEmptyState: filteredEntries.length === 0
-          })}
-
-          {!isAuthenticated ? (
-            <div className="text-center py-12">
-              <div className="text-red-400 text-lg mb-2">🔒 Authentication Required</div>
-              <p className="text-gray-500 mb-4">
-                You need to be logged in to view and manage data entries.
-              </p>
-              <button
-                onClick={handleLogin}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
-              >
-                Go to Login
-              </button>
-            </div>
-          ) : filteredEntries.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-lg mb-2">No entries found</div>
-              <p className="text-gray-500">
-                {(entries || []).length === 0
-                  ? "Start by adding your first entry"
-                  : "Try adjusting your search criteria"
-                }
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">District</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Children</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Out of School</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Girls %</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Boys %</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Poverty %</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disability %</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Other %</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredEntries.map((entry) => (
-                    <tr key={entry.id || entry._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.district}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.totalChildren}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.outOfSchoolChildren}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.girlsPercentage}%</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.boysPercentage}%</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.povertyPercentage}%</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.disabilityPercentage}%</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.otherPercentage}%</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.programType}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => handleEditEntry(entry.id || entry._id)}
-                            disabled={loading}
-                            className="text-blue-600 hover:text-blue-900 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center"
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteEntry(entry.id || entry._id)}
-                            disabled={loading}
-                            className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center"
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </div>
   )
 }

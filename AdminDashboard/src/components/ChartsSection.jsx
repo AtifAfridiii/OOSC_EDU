@@ -116,7 +116,7 @@ const ChartsSection = () => {
             </div>
           </div>
         </div>
-        {/* Percentage Legends below the chart */}
+        
         <div className="flex justify-center gap-6 mt-4">
           <div className="flex items-center gap-2">
             <span className="inline-block w-4 h-4 rounded-full" style={{ backgroundColor: '#93C5FD' }}></span>
