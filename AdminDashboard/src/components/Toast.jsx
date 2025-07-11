@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
-const Toast = ({ message, type = 'success', onClose }) => {
+const Toast = ({ message, type = 'success', onClose, autoClose = true, duration = 3000 }) => {
   // type: 'success' | 'error' | 'info' | 'warning'
   const typeStyles = {
     success: 'bg-green-100 border-green-400 text-green-800',
@@ -9,15 +9,28 @@ const Toast = ({ message, type = 'success', onClose }) => {
     warning: 'bg-yellow-100 border-yellow-400 text-yellow-800',
   }
 
+  // Auto-close functionality
+  useEffect(() => {
+    if (autoClose && duration > 0) {
+      const timer = setTimeout(() => {
+        onClose()
+      }, duration)
+
+      return () => clearTimeout(timer)
+    }
+  }, [autoClose, duration, onClose])
+
   return (
     <div
-      className={`fixed top-6 right-6 z-50 px-6 py-4 rounded shadow-lg border-l-4 flex items-center space-x-3 transition-all duration-300 ${typeStyles[type]}`}
+      className={`fixed top-6 right-6 z-50 px-6 py-4 rounded-lg shadow-lg border-l-4 flex items-center space-x-3 transition-all duration-300 transform animate-slide-in-right ${typeStyles[type]}`}
       role="alert"
     >
       <span className="flex-1 text-base font-medium">{message}</span>
+
+      {/* Close button */}
       <button
         onClick={onClose}
-        className="ml-4 text-lg font-bold focus:outline-none text-gray-600 hover:text-gray-900"
+        className="ml-2 text-lg font-bold focus:outline-none hover:opacity-70 transition-opacity duration-200"
         aria-label="Close"
       >
         ×

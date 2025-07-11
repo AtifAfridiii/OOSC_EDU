@@ -126,7 +126,7 @@ export default function DistrictsPage() {
 
   <div className="grid md:grid-cols-2 gap-4 md:gap-6 sm:grid-cols-1">
      <div className="bg-white rounded-lg p-4 md:p-6 shadow-sm border border-gray-100">
-                         <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 md:mb-6">Dropout Reasons - Swabi</h3>
+                         <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4 md:mb-6">Dropout Reasons - {selectedDistrict}</h3>
 
                          <div className="overflow-x-auto">
                              <ResponsiveContainer width="100%" height={200}>

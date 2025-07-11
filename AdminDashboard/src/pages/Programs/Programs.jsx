@@ -353,36 +353,37 @@ export default function Programs() {
 
         return (
             <>
-              <div className="w-[30%] mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                {selectedProgramType && (
-                            <div className="w-full mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                <h4 className="font-semibold text-blue-900 mb-2">Program Details</h4>
-                                <div className="grid grid-cols-1 gap-2 text-sm">
-                                    <div>
-                                        <span className="text-blue-600">Total Students:</span>
-                                        <span className="font-semibold ml-1">{currentData.statistics.totalStudents?.toLocaleString() || '0'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-blue-600">Girls Percentage:</span>
-                                        <span className="font-semibold ml-1">{currentData.statistics.girlsPercentage || 0}%</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-blue-600">Boys Percentage:</span>
-                                        <span className="font-semibold ml-1">{currentData.statistics.boysPercentage || 0}%</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-blue-600">Districts:</span>
-                                        <span className="font-semibold ml-1">{currentData.statistics.districts?.join(', ') || 'None'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-blue-600">Data Entries:</span>
-                                        <span className="font-semibold ml-1">{currentData.statistics.entriesCount}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+            <div className="w-full md:w-1/2 lg:w-[30%] mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+    {selectedProgramType && (
+        <div className="w-full">
+            <h4 className="font-semibold text-blue-900 mb-2 text-base sm:text-lg">Program Details</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 text-sm">
+                <div className=" p-2 rounded border border-blue-100">
+                    <span className="text-black">Total Students: </span>
+                    <span className="font-semibold">{currentData.statistics.totalStudents?.toLocaleString() || '0'}</span>
                 </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div className=" p-2 rounded border border-blue-100">
+                    <span className="text-black">Girls: </span>
+                    <span className="font-semibold">{currentData.statistics.girlsPercentage || 0}%</span>
+                </div>
+                <div className=" p-2 rounded border border-blue-100">
+                    <span className="text-black">Boys: </span>
+                    <span className="font-semibold">{currentData.statistics.boysPercentage || 0}%</span>
+                </div>
+                <div className=" p-2 rounded border border-blue-100 sm:col-span-2 lg:col-span-1">
+                    <div className="text-black">Districts:</div>
+                    <div className="font-semibold truncate" title={currentData.statistics.districts?.join(', ') || 'None'}>
+                        {currentData.statistics.districts?.join(', ') || 'None'}
+                    </div>
+                </div>
+                <div className=" p-2 rounded border border-blue-100 sm:col-span-2 lg:col-span-1">
+                    <span className="text-blue-600">Data Entries: </span>
+                    <span className="font-semibold">{currentData.statistics.entriesCount}</span>
+                </div>
+            </div>
+        </div>
+    )}
+</div>            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <StatsCard
                   title="Program Type"
                   value={selectedProgramType}

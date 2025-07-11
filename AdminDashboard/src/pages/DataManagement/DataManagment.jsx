@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Search, Upload, Edit, Trash2, Plus, X } from 'lucide-react'
+import { Search, Upload, Edit, Trash2, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import axiosInstance from '../../utils/axiosInstance'
 import { API_PATHS } from '../../utils/apiPaths'
 import { isUserAuthenticated, getAuthToken, clearAuthData } from '../../utils/authHelpers'
 import Toast from '../../components/Toast'
+import DeleteConfirmationAlert from '../../components/DeleteConfirmationAlert'
 
 const DataManagement = () => {
   const navigate = useNavigate()
@@ -14,9 +15,15 @@ const DataManagement = () => {
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' })
   const [isEditMode, setIsEditMode] = useState(false)
   const [editingEntryId, setEditingEntryId] = useState(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ visible: false, entryId: null, entryTitle: null })
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
+  const [goToPage, setGoToPage] = useState('')
 
   const [formData, setFormData] = useState({
     district: '',
@@ -107,8 +114,22 @@ const DataManagement = () => {
         console.log('📋 Entry keys:', Object.keys(entriesData[0] || {}))
       }
 
-      setEntries(entriesData)
-      console.log('✅ Entries set in state:', entriesData.length, 'entries')
+      // Sort entries by creation date (newest first)
+      const sortedEntries = entriesData.sort((a, b) => {
+        // Try different possible date fields
+        const dateA = new Date(a.createdAt || a.date || a.created_at || a.timestamp || 0)
+        const dateB = new Date(b.createdAt || b.date || b.created_at || b.timestamp || 0)
+        return dateB - dateA // Descending order (newest first)
+      })
+
+      console.log('📅 Sorted entries by date (newest first):', sortedEntries.length, 'entries')
+      if (sortedEntries.length > 0) {
+        console.log('📅 First entry date:', sortedEntries[0].createdAt || sortedEntries[0].date || 'No date field')
+        console.log('📅 Last entry date:', sortedEntries[sortedEntries.length - 1].createdAt || sortedEntries[sortedEntries.length - 1].date || 'No date field')
+      }
+
+      setEntries(sortedEntries)
+      console.log('✅ Entries set in state:', sortedEntries.length, 'entries')
     } catch (error) {
       console.error('❌ Error fetching entries:', error)
       console.error('❌ Error details:', error.response?.data)
@@ -126,6 +147,8 @@ const DataManagement = () => {
       const response = await axiosInstance.post(API_PATHS.ENTRIES.CREATE_ENTRY, entryData)
       console.log('✅ Created entry response:', response.data)
       await fetchAllEntries()
+      // Reset to first page to show the new entry at the top
+      setCurrentPage(1)
       showToast('Entry created successfully', 'success')
       return response.data
     } catch (error) {
@@ -166,7 +189,8 @@ const DataManagement = () => {
       showToast('Entry deleted successfully', 'success')
     } catch (error) {
       console.error('Error deleting entry:', error)
-      showToast('Failed to delete entry', 'error')
+      const errorMessage = error.response?.data?.message || 'Failed to delete entry'
+      showToast(errorMessage, 'error')
     } finally {
       setLoading(false)
     }
@@ -191,6 +215,41 @@ const DataManagement = () => {
   const showToast = (message, type = 'success') => {
     setToast({ visible: true, message, type })
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000)
+  }
+
+  // Pagination utility functions
+  const getPaginatedEntries = (entries) => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return entries.slice(startIndex, endIndex)
+  }
+
+  const getTotalPages = (totalItems) => {
+    return Math.ceil(totalItems / itemsPerPage)
+  }
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
+    console.log('📄 Page changed to:', newPage)
+  }
+
+  const handleGoToPage = () => {
+    const pageNumber = parseInt(goToPage)
+    const totalPages = getTotalPages(filteredEntries.length)
+
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber)
+      setGoToPage('')
+      console.log('📄 Navigated to page:', pageNumber)
+    } else {
+      showToast(`Please enter a page number between 1 and ${totalPages}`, 'error')
+    }
+  }
+
+  const getPaginationInfo = (totalItems) => {
+    const startItem = (currentPage - 1) * itemsPerPage + 1
+    const endItem = Math.min(currentPage * itemsPerPage, totalItems)
+    return { startItem, endItem, totalItems }
   }
 
   // Check authentication and load entries on component mount
@@ -290,14 +349,30 @@ const DataManagement = () => {
     }
   }
 
-  const handleDeleteEntry = async (entryId) => {
-    if (window.confirm('Are you sure you want to delete this entry?')) {
-      try {
-        await deleteEntry(entryId)
-      } catch (error) {
-        console.error('Error in handleDeleteEntry:', error)
-      }
+  const handleDeleteEntry = (entryId) => {
+    // Find the entry to get its title for the confirmation message
+    const entry = entries.find(e => (e.id || e._id) === entryId)
+    const entryTitle = entry ? `${entry.district} - ${entry.programType}` : null
+
+    setDeleteConfirmation({
+      visible: true,
+      entryId,
+      entryTitle
+    })
+  }
+
+  const confirmDelete = async () => {
+    try {
+      await deleteEntry(deleteConfirmation.entryId)
+      setDeleteConfirmation({ visible: false, entryId: null, entryTitle: null })
+    } catch (error) {
+      console.error('Error in confirmDelete:', error)
+      setDeleteConfirmation({ visible: false, entryId: null, entryTitle: null })
     }
+  }
+
+  const cancelDelete = () => {
+    setDeleteConfirmation({ visible: false, entryId: null, entryTitle: null })
   }
 
   const handleReset = () => {
@@ -353,6 +428,7 @@ const DataManagement = () => {
   console.log('  - entries state:', entries)
   console.log('  - entries length:', (entries || []).length)
   console.log('  - searchTerm:', searchTerm)
+  console.log('  - currentPage:', currentPage)
 
   const filteredEntries = (entries || []).filter(entry => {
     if (!entry) {
@@ -379,14 +455,38 @@ const DataManagement = () => {
     return matches
   })
 
-  console.log('📊 Filtered entries:', filteredEntries)
-  console.log('📊 Filtered entries length:', filteredEntries.length)
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1)
+    console.log('� Search term changed, reset to page 1')
+  }, [searchTerm])
+
+  // Get paginated entries for current page
+  const paginatedEntries = getPaginatedEntries(filteredEntries)
+  const totalPages = getTotalPages(filteredEntries.length)
+  const paginationInfo = getPaginationInfo(filteredEntries.length)
+
+  console.log('📊 Filtered entries:', filteredEntries.length)
+  console.log('📄 Paginated entries for page', currentPage, ':', paginatedEntries.length)
+  console.log('📄 Total pages:', totalPages)
+  console.log('📄 Pagination info:', paginationInfo)
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-6 px-2 md:px-6">
       {toast.visible && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(t => ({ ...t, visible: false }))} />
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(t => ({ ...t, visible: false }))}
+        />
       )}
+
+      <DeleteConfirmationAlert
+        isVisible={deleteConfirmation.visible}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        entryTitle={deleteConfirmation.entryTitle}
+      />
 
       {/* Header Section */}
       <div className="max-w-7xl mx-auto mb-6">
@@ -648,7 +748,7 @@ const DataManagement = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 md:p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900">
-                Data Entries ({filteredEntries.length} of {(entries || []).length})
+                Data Entries ({filteredEntries.length} total{filteredEntries.length > itemsPerPage ? `, showing ${paginatedEntries.length} on page ${currentPage}` : ''})
               </h3>
               {loading && (
                 <div className="flex items-center text-gray-500">
@@ -707,7 +807,7 @@ const DataManagement = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEntries.map((entry) => (
+                    {paginatedEntries.map((entry) => (
                       <tr key={entry.id || entry._id} className="hover:bg-gray-50">
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.district}</td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{entry.totalChildren}</td>
@@ -743,6 +843,94 @@ const DataManagement = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {isAuthenticated && filteredEntries.length > 0 && (
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Pagination Info */}
+                <div className="text-sm text-gray-700">
+                  Showing {paginationInfo.startItem}-{paginationInfo.endItem} of {paginationInfo.totalItems} entries
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center gap-2">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                      // Show first page, last page, current page, and pages around current page
+                      const showPage =
+                        pageNum === 1 ||
+                        pageNum === totalPages ||
+                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+
+                      if (!showPage && pageNum === 2 && currentPage > 4) {
+                        return <span key="ellipsis1" className="px-2 text-gray-500">...</span>
+                      }
+                      if (!showPage && pageNum === totalPages - 1 && currentPage < totalPages - 3) {
+                        return <span key="ellipsis2" className="px-2 text-gray-500">...</span>
+                      }
+                      if (!showPage) return null
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-2 text-sm font-medium rounded-md ${
+                            currentPage === pageNum
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </button>
+                </div>
+
+                {/* Go to Page */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700">Go to page:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={totalPages}
+                    value={goToPage}
+                    onChange={(e) => setGoToPage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleGoToPage()}
+                    className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder={currentPage.toString()}
+                  />
+                  <button
+                    onClick={handleGoToPage}
+                    disabled={!goToPage || loading}
+                    className="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Go
+                  </button>
+                </div>
               </div>
             )}
           </div>

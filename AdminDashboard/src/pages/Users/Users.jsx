@@ -8,6 +8,23 @@ export default function Users() {
      const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(false)
 
+    const [deleteUSer,selectDeleteUser]=useState(null)
+
+    const handleDeleteUser = async () => {
+        setLoading(true)
+        try {
+            const response = await axiosInstance.delete(API_PATHS.USERS.DELETE_USER(deleteUSer))
+            setUsers(response.data)
+        } catch (error) {
+            console.error('Error deleting user:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+    const handleSelectDeleteUser = (userId) => {
+        selectDeleteUser(userId)
+    }
+
     const fetchAllUsers = async () => {
         setLoading(true)
         try {

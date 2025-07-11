@@ -225,6 +225,6 @@ function BottomSection() {
       </div>
     </div>
   );
-} 
+}
 
 export default BottomSection
